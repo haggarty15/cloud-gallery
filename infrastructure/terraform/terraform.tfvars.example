@@ -1,0 +1,26 @@
+# Example Terraform Variables
+# Copy this file to terraform.tfvars and fill in your values
+
+# Required: Your GCP project ID
+project_id = "your-gcp-project-id"
+
+# Optional: Region for resources (default: us-central1)
+region = "us-central1"
+
+# Optional: Zone for resources (default: us-central1-a)
+zone = "us-central1-a"
+
+# Optional: Environment name (default: dev)
+environment = "dev"
+
+# Optional: Cloud SQL tier (default: db-f1-micro for dev)
+# Options: db-f1-micro, db-g1-small, db-n1-standard-1, etc.
+db_tier = "db-f1-micro"
+
+# Optional: Storage bucket location (default: US)
+# Options: US, EU, ASIA, or specific regions
+bucket_location = "US"
+
+# Optional: Cloud Run scaling (default: 0 min, 10 max)
+min_instances = 0
+max_instances = 10
