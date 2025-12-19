@@ -1,0 +1,14 @@
+Flask==3.0.0
+Flask-CORS==4.0.0
+Flask-SQLAlchemy==3.1.1
+psycopg2-binary==2.9.9
+google-cloud-storage==2.14.0
+firebase-admin==6.4.0
+Pillow==10.2.0
+python-dotenv==1.0.0
+gunicorn==21.2.0
+pg8000==1.31.1
+cloud-sql-python-connector==1.7.0
+pytest==7.4.3
+pytest-cov==4.1.0
+requests==2.31.0

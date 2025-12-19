@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Cloud Gallery</string>
+    <string name="api_base_url">https://gallery-backend-xxx.run.app</string>
+    
+    <!-- Login Screen -->
+    <string name="login_title">Welcome to Cloud Gallery</string>
+    <string name="email_hint">Email</string>
+    <string name="password_hint">Password</string>
+    <string name="btn_login">Login</string>
+    <string name="btn_signup">Sign Up</string>
+    <string name="btn_google_signin">Sign in with Google</string>
+    <string name="or_divider">OR</string>
+    
+    <!-- Main Screen -->
+    <string name="welcome_message">Welcome, %1$s</string>
+    <string name="btn_upload">Upload Image</string>
+    <string name="btn_my_uploads">My Uploads</string>
+    <string name="btn_logout">Logout</string>
+    
+    <!-- Upload Screen -->
+    <string name="upload_title">Upload Image</string>
+    <string name="title_hint">Title (optional)</string>
+    <string name="description_hint">Description (optional)</string>
+    <string name="btn_choose_image">Choose Image</string>
+    <string name="btn_take_photo">Take Photo</string>
+    <string name="btn_submit_upload">Upload</string>
+    <string name="uploading">Uploading...</string>
+    <string name="upload_success">Image uploaded successfully!</string>
+    <string name="upload_error">Upload failed: %1$s</string>
+    
+    <!-- Uploads List Screen -->
+    <string name="my_uploads_title">My Uploads</string>
+    <string name="filter_all">All</string>
+    <string name="filter_pending">Pending</string>
+    <string name="filter_approved">Approved</string>
+    <string name="filter_rejected">Rejected</string>
+    <string name="no_uploads">No uploads yet</string>
+    <string name="status_pending">Pending</string>
+    <string name="status_approved">Approved</string>
+    <string name="status_rejected">Rejected</string>
+    <string name="delete_confirm">Delete this image?</string>
+    <string name="delete_success">Image deleted</string>
+    <string name="delete_error">Failed to delete image</string>
+    
+    <!-- Error Messages -->
+    <string name="error_network">Network error. Please check your connection.</string>
+    <string name="error_auth">Authentication failed</string>
+    <string name="error_unknown">An error occurred</string>
+    
+    <!-- Permissions -->
+    <string name="permission_camera_rationale">Camera permission is needed to take photos</string>
+    <string name="permission_storage_rationale">Storage permission is needed to select images</string>
+</resources>
