@@ -191,340 +191,583 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 This is a portfolio project for demonstrating GCP skills. Feel free to fork and adapt for your own use.
 
+## 💰 Cost-Optimized Deployment Guide
+
+**Target Monthly Cost: $0-2** (vs $10-15 with Cloud SQL)
+
+This guide uses **local PostgreSQL** instead of Cloud SQL to minimize costs while focusing on learning key GCP concepts: IAM, Cloud Storage, Cloud Run, and Firebase.
+
+### 📋 What You'll Learn
+- ✅ GCP project structure and resource hierarchy
+- ✅ IAM roles, service accounts, and least privilege principles  
+- ✅ Cloud Storage with bucket policies and lifecycle management
+- ✅ Cloud Run serverless deployment with auto-scaling
+- ✅ Firebase authentication and identity management
+- ❌ **Skipping:** Cloud SQL (can add later if needed)
+
+---
+
+## 🏗️ GCP Structure: Understanding the Hierarchy
+
+**GCP vs Azure comparison:**
+```
+Azure                           GCP
+─────────────────────────────────────────────
+Management Group         →      Organization (optional)
+  └─ Subscription        →        └─ Folder (optional)
+      └─ Resource Group  →            └─ Project ⭐
+          └─ Resources   →                └─ Resources
+```
+
+**Key Concepts:**
+- **Project** = Your billing boundary (like Azure Subscription + Resource Group)
+- Your project: `image-gallery-481812`
+- All resources (storage, Cloud Run, etc.) belong to this project
+- Each project has its own IAM policies
+
+---
+
 ## Deployment Checklist
 
-Complete this checklist to get your Cloud Gallery system fully operational.
+### ✅ Phase 1: GCP Project Setup (COMPLETED)
 
-### 🎯 Phase 1: GCP Project Setup
+- [x] **Create GCP Project**
+  - Project ID: `image-gallery-481812`
+  - Billing enabled ✅
 
-- [ ] **Create GCP Project**
-  - Create new project in [GCP Console](https://console.cloud.google.com/)
-  - Project ID: `_________________`
-  - Enable billing on the project
+- [x] **Install Required Tools**
+  - [x] gcloud CLI (v550.0.0) ✅
+  - [x] Authenticated as: kylehaggarty@gmail.com ✅
+  - [x] Docker Desktop (v24.0.6) ✅
+  - [x] Terraform (v1.14.3) ✅
 
-- [ ] **Install Required Tools**
-  - [ ] Install [gcloud CLI](https://cloud.google.com/sdk/docs/install)
-  - [ ] Run `gcloud auth login`
-  - [ ] Run `gcloud config set project YOUR_PROJECT_ID`
-  - [ ] Install Docker Desktop
-  - [ ] Install Terraform (optional but recommended)
-
-- [ ] **Enable Required GCP APIs**
+- [x] **Enable Required GCP APIs** ✅
   ```bash
-  gcloud services enable run.googleapis.com
-  gcloud services enable storage.googleapis.com
-  gcloud services enable sqladmin.googleapis.com
-  gcloud services enable identitytoolkit.googleapis.com
-  gcloud services enable cloudbuild.googleapis.com
-  gcloud services enable secretmanager.googleapis.com
+  # Already completed - all APIs enabled
+  gcloud services list --enabled
   ```
 
-### 🔥 Phase 2: Firebase Configuration
+
+### ✅ Phase 2: IAM & Service Accounts (COMPLETED)
+
+**Understanding IAM:**
+- Service accounts = identities for applications (like Azure Managed Identity)
+- Roles = collections of permissions
+- Principle of least privilege = grant minimum permissions needed
+
+- [x] **Create Service Account for Backend** ✅
+
+  Service account created: `gallery-backend@image-gallery-481812.iam.gserviceaccount.com`
+
+- [x] **View Service Accounts** ✅
+
+  ```bash
+  gcloud iam service-accounts list
+  ```
+
+- [x] **Granted IAM Roles** ✅
+  - ✅ `roles/firebase.admin` - Admin Firebase operations
+  - ✅ `roles/storage.objectAdmin` - Full control of storage objects
+
+  **Other key roles to know:**
+  - `roles/run.invoker` - Invoke Cloud Run services (will use later)
+
+- [ ] **🎓 Learning Exercise: Create Custom Role (Optional)**
+
+  ```bash
+  gcloud iam roles create galleryImageUploader \
+      --project=image-gallery-481812 \
+      --title="Gallery Image Uploader" \
+      --description="Can only upload images to gallery bucket" \
+      --permissions=storage.objects.create,storage.objects.get \
+      --stage=GA
+  ```
+
+- [ ] **View Project IAM Policy**
+
+  ```bash
+  # See all IAM bindings for your project
+  gcloud projects get-iam-policy image-gallery-481812 \
+      --flatten="bindings[].members" \
+      --format="table(bindings.role, bindings.members)"
+  ```
+
+---
+
+### ✅ Phase 3: Cloud Storage Setup (COMPLETED)
+
+- [x] **Create Storage Bucket** ✅
+
+  Bucket created: `gs://image-gallery-481812-gallery-images`
+  - Location: `us-central1`
+  - Storage class: `STANDARD`
+
+- [x] **Grant Storage Permissions (Project Level)** ✅
+
+  Granted `roles/storage.objectAdmin` to service account
+
+- [x] **Configure CORS** ✅
+
+  CORS policy applied - allows web uploads from any origin
+
+  ```bash
+  # To verify:
+  gsutil cors get gs://image-gallery-481812-gallery-images
+  ```
+
+- [x] **Set Lifecycle Policy (Auto-delete old pending images)** ✅
+
+  Lifecycle policy applied - automatically deletes images in `pending/` folder after 90 days
+
+  ```bash
+  # To verify:
+  gsutil lifecycle get gs://image-gallery-481812-gallery-images
+  ```
+
+  **What this does:** Automatically deletes images in `pending/` folder after 90 days (saves costs!)
+
+---
+
+### 🔥 Phase 4: Firebase Configuration (NEXT STEP - MANUAL)
+
+**⚡ This is where you are now!** Complete this phase in your browser.
 
 - [ ] **Setup Firebase Project**
-  - [ ] Go to [Firebase Console](https://console.firebase.google.com/)
-  - [ ] Add Firebase to your GCP project (use existing project)
-  - [ ] Enable Authentication methods:
-    - [ ] Email/Password
-    - [ ] Google Sign-In
+  - Go to [Firebase Console](https://console.firebase.google.com/)
+  - Click "Add Project"
+  - **Select existing project:** `image-gallery-481812`
+  - Disable Google Analytics (not needed for portfolio)
+  - Click "Continue"
 
-- [ ] **Get Firebase Credentials for Web**
-  - [ ] In Firebase Console → Project Settings → Add Web App
-  - [ ] Copy the Firebase config (apiKey, authDomain, etc.)
-  - [ ] Save these values for `web/.env` file
+- [ ] **Enable Authentication**
+  - Firebase Console → Build → Authentication
+  - Click "Get Started"
+  - Enable **Email/Password** provider
+  - Enable **Google Sign-In** provider
 
-- [ ] **Get Firebase Credentials for Android**
-  - [ ] In Firebase Console → Project Settings → Add Android App
-  - [ ] Package name: `com.cloudgallery.portfolio`
-  - [ ] Download `google-services.json`
-  - [ ] Place in `android/app/` directory
+- [ ] **Add Web App**
+  - Firebase Console → Project Settings → Your apps
+  - Click "Web" icon (</>) → "Add app"
+  - App nickname: `Cloud Gallery Web`
+  - **Don't** check Firebase Hosting
+  - Click "Register app"
+  - **Copy the Firebase config** (apiKey, authDomain, projectId, etc.)
+  - Save for later (you'll put this in `web/.env`)
 
-- [ ] **Create Firebase Admin Service Account**
+- [ ] **Add Android App**
+  - Firebase Console → Project Settings → Your apps
+  - Click "Android" icon → "Add app"
+  - Package name: `com.cloudgallery.portfolio`
+  - App nickname: `Cloud Gallery Android`
+  - Click "Register app"
+  - **Download `google-services.json`**
+  - Place in `android/app/` directory
+
+- [ ] **Grant Firebase Admin Role to Service Account**
+
   ```bash
-  gcloud iam service-accounts create gallery-backend \
-      --display-name="Gallery Backend Service Account"
-  
-  gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
-      --member="serviceAccount:gallery-backend@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+  gcloud projects add-iam-policy-binding image-gallery-481812 \
+      --member="serviceAccount:gallery-backend@image-gallery-481812.iam.gserviceaccount.com" \
       --role="roles/firebase.admin"
-  
-  gcloud iam service-accounts keys create service-account-key.json \
-      --iam-account=gallery-backend@YOUR_PROJECT_ID.iam.gserviceaccount.com
   ```
-  - [ ] Save `service-account-key.json` securely (DO NOT commit to git!)
 
-### 💾 Phase 3: Cloud Storage Setup
+- [ ] **Create Service Account Key for Firebase Admin**
 
-- [ ] **Create Storage Bucket**
   ```bash
-  gsutil mb -l us-central1 gs://YOUR_PROJECT_ID-gallery-images
+  gcloud iam service-accounts keys create firebase-admin-key.json \
+      --iam-account=gallery-backend@image-gallery-481812.iam.gserviceaccount.com
   ```
 
-- [ ] **Configure CORS for Bucket**
+  **⚠️ IMPORTANT:** Never commit `firebase-admin-key.json` to git!
+
   ```bash
-  echo '[{"origin": ["*"], "method": ["GET", "HEAD", "PUT", "POST"], "responseHeader": ["Content-Type"], "maxAgeSeconds": 3600}]' > cors.json
-  gsutil cors set cors.json gs://YOUR_PROJECT_ID-gallery-images
+  # Add to .gitignore
+  echo "firebase-admin-key.json" >> .gitignore
   ```
 
-- [ ] **Set Lifecycle Policy** (auto-delete old pending images)
+---
+
+### ✅ Phase 5: Local PostgreSQL Setup (COMPLETED)
+
+**Why local database?**
+- Cloud SQL costs $7-10/month
+- Local PostgreSQL is free and perfect for development
+- You'll learn GCP concepts without the database cost
+- Can migrate to Cloud SQL later if needed
+
+- [x] **Install PostgreSQL** ✅
+
+  PostgreSQL 15 installed via Homebrew and service started
+
   ```bash
-  echo '{"lifecycle": {"rule": [{"action": {"type": "Delete"}, "condition": {"age": 90, "matchesPrefix": ["pending/"]}}]}}' > lifecycle.json
-  gsutil lifecycle set lifecycle.json gs://YOUR_PROJECT_ID-gallery-images
+  # Verify installation
+  psql --version
+  # Should show: psql (PostgreSQL) 15.15
   ```
 
-- [ ] **Grant Storage Permissions**
+- [x] **Create Database and User** ✅
+
+  Database created: `gallery`
+  User created: `gallery_user` with password `dev_password_123`
+
+- [x] **Test Database Connection** ✅
+
   ```bash
-  gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
-      --member="serviceAccount:gallery-backend@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
-      --role="roles/storage.objectAdmin"
+  psql -U gallery_user -d gallery -h localhost
+  # Password: dev_password_123
+  # Connection successful!
   ```
 
-### 🗄️ Phase 4: Cloud SQL Database Setup
+**💰 Cost saved:** ~$7-10/month!
 
-- [ ] **Create PostgreSQL Instance**
-  ```bash
-  gcloud sql instances create gallery-db \
-      --database-version=POSTGRES_15 \
-      --tier=db-f1-micro \
-      --region=us-central1 \
-      --root-password=YOUR_SECURE_PASSWORD
-  ```
-  - Root password: `_________________` (save securely!)
+---
 
-- [ ] **Create Database**
-  ```bash
-  gcloud sql databases create gallery --instance=gallery-db
-  ```
+### ✅ Phase 6: Backend Configuration (COMPLETED)
 
-- [ ] **Get Connection Name** (save for later)
-  ```bash
-  gcloud sql instances describe gallery-db --format="value(connectionName)"
-  ```
-  - Connection name: `_________________`
+- [x] **Create Backend Environment File** ✅
 
-- [ ] **Grant SQL Permissions**
-  ```bash
-  gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
-      --member="serviceAccount:gallery-backend@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
-      --role="roles/cloudsql.client"
-  ```
+  Created `backend/.env` with:
+  - Local PostgreSQL connection: `postgresql://gallery_user:dev_password_123@localhost:5432/gallery`
+  - GCP Project ID: `image-gallery-481812`
+  - Bucket name: `image-gallery-481812-gallery-images`
+  - Firebase credentials path: `../firebase-admin-key.json`
 
-- [ ] **Store DB Password in Secret Manager**
-  ```bash
-  echo -n "YOUR_SECURE_PASSWORD" | gcloud secrets create db-password --data-file=-
-  gcloud secrets add-iam-policy-binding db-password \
-      --member="serviceAccount:gallery-backend@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
-      --role="roles/secretmanager.secretAccessor"
-  ```
+- [x] **Updated .gitignore** ✅
 
-- [ ] **Store Firebase Key in Secret Manager**
-  ```bash
-  gcloud secrets create firebase-key --data-file=service-account-key.json
-  gcloud secrets add-iam-policy-binding firebase-key \
-      --member="serviceAccount:gallery-backend@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
-      --role="roles/secretmanager.secretAccessor"
-  ```
+  Added to `.gitignore`:
+  - `backend/.env`
+  - `firebase-admin-key.json`
+  - `cors.json`, `lifecycle.json`
 
-### 🚀 Phase 5: Deploy Backend API
+---
 
-- [ ] **Configure Backend Environment**
+### ⚙️ Phase 6: Backend Configuration
+
+- [ ] **Update Backend Environment Variables**
+
   ```bash
   cd backend
   cp .env.example .env
   ```
-  Edit `.env` with your values:
-  - `PROJECT_ID=YOUR_PROJECT_ID`
-  - `BUCKET_NAME=YOUR_PROJECT_ID-gallery-images`
-  - `DB_CONNECTION_NAME=YOUR_CONNECTION_NAME`
-  - `DB_PASSWORD=YOUR_DB_PASSWORD`
 
-- [ ] **Build Backend Container**
+  Edit `backend/.env`:
+
+  ```env
+  # Local PostgreSQL (not Cloud SQL!)
+  DATABASE_URL=postgresql://gallery_user:dev_password_123@localhost:5432/gallery
+  
+  # GCP Project Settings
+  PROJECT_ID=image-gallery-481812
+  BUCKET_NAME=image-gallery-481812-gallery-images
+  
+  # Firebase Admin (path to service account key)
+  FIREBASE_CREDENTIALS=../firebase-admin-key.json
+  
+  # App Settings
+  PORT=8080
+  FLASK_ENV=development
+  ```
+
+- [ ] **Install Python Dependencies**
+
   ```bash
-  gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/gallery-backend
+  cd backend
+  python3 -m venv venv
+  source venv/bin/activate
+  pip install -r requirements.txt
+  ```
+
+- [ ] **Initialize Database Schema**
+
+  ```bash
+  cd backend
+  source venv/bin/activate
+  python -c "from app import db, app; app.app_context().push(); db.create_all(); print('Database initialized!')"
+  ```
+
+- [ ] **Test Backend Locally**
+
+  ```bash
+  cd backend
+  source venv/bin/activate
+  python -m flask run --host=0.0.0.0 --port=8080
+  
+  # In another terminal, test:
+  curl http://localhost:8080/health
+  # Should return: {"status": "healthy"}
+  ```
+
+---
+
+### 🚀 Phase 7: Deploy Backend to Cloud Run
+
+**Cloud Run = Serverless containers with auto-scaling to zero (FREE when idle!)**
+
+- [ ] **Ensure Docker Desktop is Running**
+
+  ```bash
+  docker ps
+  # Should not show error - if it does, start Docker Desktop
+  ```
+
+- [ ] **Test Backend with Docker Locally (Optional)**
+
+  ```bash
+  cd backend
+  docker build -t gallery-backend .
+  docker run -p 8080:8080 --env-file .env gallery-backend
+  
+  # Test in another terminal
+  curl http://localhost:8080/health
+  ```
+
+- [ ] **Build and Push to Google Container Registry**
+
+  ```bash
+  cd backend
+  
+  # Configure Docker authentication
+  gcloud auth configure-docker
+  
+  # Build image
+  gcloud builds submit --tag gcr.io/image-gallery-481812/gallery-backend
   ```
 
 - [ ] **Deploy to Cloud Run**
+
   ```bash
   gcloud run deploy gallery-backend \
-      --image gcr.io/YOUR_PROJECT_ID/gallery-backend \
+      --image gcr.io/image-gallery-481812/gallery-backend \
       --platform managed \
       --region us-central1 \
       --allow-unauthenticated \
-      --add-cloudsql-instances YOUR_CONNECTION_NAME \
-      --set-env-vars PROJECT_ID=YOUR_PROJECT_ID \
-      --set-env-vars BUCKET_NAME=YOUR_PROJECT_ID-gallery-images \
-      --set-env-vars DB_CONNECTION_NAME=YOUR_CONNECTION_NAME \
-      --set-env-vars DB_NAME=gallery \
-      --set-env-vars DB_USER=postgres \
-      --set-secrets DB_PASSWORD=db-password:latest \
-      --set-secrets FIREBASE_CREDENTIALS=firebase-key:latest
+      --set-env-vars PROJECT_ID=image-gallery-481812 \
+      --set-env-vars BUCKET_NAME=image-gallery-481812-gallery-images \
+      --set-env-vars DATABASE_URL=YOUR_PRODUCTION_DB_URL \
+      --service-account=gallery-backend@image-gallery-481812.iam.gserviceaccount.com \
+      --max-instances=10 \
+      --min-instances=0 \
+      --memory=512Mi
   ```
 
-- [ ] **Save Backend URL**
+  **⚠️ NOTE:** For production deployment with local DB, you'll need to either:
+  1. Deploy Cloud SQL later and update DATABASE_URL
+  2. Use a remote PostgreSQL service (like Supabase free tier)
+  3. For now, test deployment with a dummy DATABASE_URL
+
+- [ ] **Get Backend URL**
+
   ```bash
-  gcloud run services describe gallery-backend --platform managed --region us-central1 --format "value(status.url)"
+  gcloud run services describe gallery-backend \
+      --platform managed \
+      --region us-central1 \
+      --format="value(status.url)"
   ```
-  - Backend URL: `_________________`
 
-- [ ] **Test Backend Health**
+  Backend URL: `_________________`
+
+- [ ] **🎓 Learning Exercise: Cloud Run IAM**
+
   ```bash
-  curl YOUR_BACKEND_URL/health
+  # View who can invoke your service
+  gcloud run services get-iam-policy gallery-backend --region us-central1
+  
+  # Make it require authentication
+  gcloud run services remove-iam-policy-binding gallery-backend \
+      --region us-central1 \
+      --member="allUsers" \
+      --role="roles/run.invoker"
+  
+  # Add back public access (for API with its own auth)
+  gcloud run services add-iam-policy-binding gallery-backend \
+      --region us-central1 \
+      --member="allUsers" \
+      --role="roles/run.invoker"
   ```
-  Should return: `{"status": "healthy"}`
 
-### 🌐 Phase 6: Deploy Web Gallery
+---
+
+### 🌐 Phase 8: Deploy Web Gallery
 
 - [ ] **Configure Web Environment**
+
   ```bash
   cd web
   cp .env.example .env
   ```
-  Edit `.env` with your Firebase config and backend URL:
-  - `VITE_API_URL=YOUR_BACKEND_URL`
-  - `VITE_FIREBASE_API_KEY=...`
-  - `VITE_FIREBASE_AUTH_DOMAIN=...`
-  - (all other Firebase values)
 
-- [ ] **Build Web App**
+  Edit `web/.env` with Firebase config from Phase 4:
+
+  ```env
+  VITE_API_URL=YOUR_BACKEND_URL_FROM_PHASE_7
+  VITE_FIREBASE_API_KEY=your-api-key
+  VITE_FIREBASE_AUTH_DOMAIN=image-gallery-481812.firebaseapp.com
+  VITE_FIREBASE_PROJECT_ID=image-gallery-481812
+  VITE_FIREBASE_STORAGE_BUCKET=image-gallery-481812.appspot.com
+  VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+  VITE_FIREBASE_APP_ID=your-app-id
+  ```
+
+- [ ] **Install Dependencies and Build**
+
   ```bash
+  cd web
   npm install
   npm run build
   ```
 
 - [ ] **Deploy to Cloud Run**
+
   ```bash
-  gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/gallery-web
+  cd web
+  
+  # Build and push container
+  gcloud builds submit --tag gcr.io/image-gallery-481812/gallery-web
+  
+  # Deploy
   gcloud run deploy gallery-web \
-      --image gcr.io/YOUR_PROJECT_ID/gallery-web \
+      --image gcr.io/image-gallery-481812/gallery-web \
       --platform managed \
       --region us-central1 \
-      --allow-unauthenticated
+      --allow-unauthenticated \
+      --max-instances=10 \
+      --min-instances=0
   ```
 
-- [ ] **Save Web URL**
+- [ ] **Get Web URL**
+
   ```bash
-  gcloud run services describe gallery-web --platform managed --region us-central1 --format "value(status.url)"
+  gcloud run services describe gallery-web \
+      --platform managed \
+      --region us-central1 \
+      --format="value(status.url)"
   ```
-  - Web URL: `_________________`
+
+  Web URL: `_________________`
 
 - [ ] **Test Web App**
-  - [ ] Open web URL in browser
-  - [ ] Verify gallery page loads
-  - [ ] Test login functionality
+  - Open web URL in browser
+  - Verify gallery page loads
+  - Test authentication flow
 
-### 📱 Phase 7: Configure Android App
+---
 
-- [ ] **Setup Android Studio**
-  - [ ] Open `android/` folder in Android Studio
-  - [ ] Wait for Gradle sync
+### 📱 Phase 9: Configure Android App
 
-- [ ] **Add Firebase Config**
-  - [ ] Verify `google-services.json` is in `android/app/`
-  - [ ] Check file is not in `.gitignore`
+- [ ] **Open in Android Studio**
+  - Open `android/` folder
+  - Wait for Gradle sync
+
+- [ ] **Verify Firebase Configuration**
+  - Check `android/app/google-services.json` exists
+  - Should have been added in Phase 4
 
 - [ ] **Configure Backend URL**
-  - [ ] Edit `android/app/src/main/res/values/strings.xml`
-  - [ ] Add: `<string name="api_base_url">YOUR_BACKEND_URL</string>`
+
+  Edit `android/app/src/main/res/values/strings.xml`:
+
+  ```xml
+  <string name="api_base_url">YOUR_BACKEND_URL</string>
+  ```
 
 - [ ] **Build and Test**
-  - [ ] Connect Android device or start emulator
-  - [ ] Click Run button in Android Studio
-  - [ ] Test login and image upload
+  - Connect Android device or start emulator
+  - Click Run in Android Studio
+  - Test login and upload
 
-### 👤 Phase 8: Create Admin User
+---
 
-- [ ] **Sign Up via Web Interface**
-  - [ ] Go to your web URL
-  - [ ] Click Login
-  - [ ] Create account with email/password
+### 👤 Phase 10: Create Admin User
+
+- [ ] **Sign Up via Web**
+  - Go to your web URL
+  - Click Login
+  - Create account with email/password
 
 - [ ] **Grant Admin Permissions**
-  - [ ] Go to Firebase Console → Authentication → Users
-  - [ ] Find your user
-  - [ ] Click on user → Custom Claims tab
-  - [ ] Add custom claim: `{"admin": true}`
-  
-  Or use Firebase CLI:
+
+  Option A - Firebase Console:
+  - Firebase Console → Authentication → Users
+  - Find your user
+  - Add custom claim: `{"admin": true}`
+
+  Option B - Firebase CLI:
+
   ```bash
   npm install -g firebase-tools
   firebase login
-  firebase functions:config:set admin.email="your-email@example.com"
+  # Then use Firebase Admin SDK or Functions to set custom claims
   ```
 
 - [ ] **Verify Admin Access**
-  - [ ] Log out and log back in to web app
-  - [ ] Navigate to `/admin` route
-  - [ ] Verify admin dashboard is accessible
+  - Log out and log back in
+  - Navigate to `/admin` route
+  - Should see admin dashboard
 
-### 🌍 Phase 9: Custom Domain Setup (Optional)
+---
 
-- [ ] **Map Custom Domain to Cloud Run**
-  ```bash
-  gcloud run domain-mappings create --service gallery-web --domain gallery.yourdomain.com --region us-central1
-  ```
-
-- [ ] **Update DNS Records**
-  - [ ] Add DNS records provided by Cloud Run to your domain registrar
-  - [ ] Wait for DNS propagation (can take up to 48 hours)
-
-- [ ] **Update Firebase Authorized Domains**
-  - [ ] Firebase Console → Authentication → Settings
-  - [ ] Add your custom domain to authorized domains
-
-- [ ] **Update CORS Configuration**
-  - Update your storage bucket CORS to include your custom domain
-
-### 🔍 Phase 10: Testing & Verification
+### 🎉 Phase 11: Testing & Validation
 
 - [ ] **End-to-End Test**
-  - [ ] Android: Login → Upload image with title/description
-  - [ ] Web Admin: Login → See pending image → Approve it
-  - [ ] Web Public: Refresh gallery → See approved image
-  - [ ] Click image to view full size in modal
+  - [ ] Android: Login → Upload image
+  - [ ] Web Admin: Approve image
+  - [ ] Web Public: View approved image
 
-- [ ] **Security Checks**
-  - [ ] Verify unauthenticated users can't access `/api/upload`
-  - [ ] Verify non-admin users can't access `/admin` dashboard
-  - [ ] Verify pending images are NOT visible in public gallery
+- [ ] **Security Validation**
+  - [ ] Unauthenticated users can't upload
+  - [ ] Non-admins can't access admin dashboard
+  - [ ] Pending images not visible in public gallery
 
-- [ ] **Monitoring Setup**
+- [ ] **Cost Monitoring**
+
   ```bash
-  # View recent logs
-  gcloud logging read "resource.type=cloud_run_revision" --limit 50
+  # View current costs
+  gcloud beta billing accounts list
+  
+  # Set budget alert
+  # (Do this in GCP Console → Billing → Budgets)
   ```
 
-### 📊 Phase 11: Cost Optimization & Monitoring
+---
 
-- [ ] **Set Billing Budget Alert**
-  - [ ] Go to GCP Console → Billing → Budgets & alerts
-  - [ ] Create budget alert (e.g., $20/month)
+## 📊 Expected Costs (This Setup)
 
-- [ ] **Configure Cloud Monitoring**
-  - [ ] Set up uptime checks for backend and web URLs
-  - [ ] Create alert for error rates
+| Service | Monthly Cost |
+|---------|-------------|
+| Cloud Storage (1,000 images) | $0.04 |
+| Cloud Run Backend (low traffic) | $0.00 (free tier) |
+| Cloud Run Web (low traffic) | $0.00 (free tier) |
+| Firebase Auth | $0.00 (free tier) |
+| Container Registry | $0.05 |
+| Network Egress (minimal) | $0.10 |
+| **TOTAL** | **~$0.20-2/month** 🎉 |
 
-- [ ] **Review Cloud Run Settings**
-  - [ ] Set max instances to prevent runaway costs
-  - [ ] Consider min instances=0 for development (scales to zero)
+---
 
-### 🎉 Phase 12: Go Live!
+## 🎓 What You Learned
 
-- [ ] **Share Your Gallery**
-  - Web URL: `_________________`
-  - Custom domain: `_________________`
+✅ **GCP Project Structure** - Projects, billing, resource hierarchy  
+✅ **IAM** - Service accounts, roles, policies, least privilege  
+✅ **Cloud Storage** - Buckets, IAM, lifecycle policies, CORS  
+✅ **Cloud Run** - Serverless containers, auto-scaling, cost optimization  
+✅ **Firebase** - Authentication, admin SDK, custom claims  
 
-- [ ] **Update README**
-  - [ ] Add live demo link to README
-  - [ ] Add screenshots
-  - [ ] Update portfolio/resume with project link
+**Without paying for:**
+❌ Cloud SQL ($7-10/month)  
+❌ Always-on compute  
+❌ Expensive managed services  
 
-- [ ] **Consider Next Steps**
-  - [ ] Set up CI/CD with Cloud Build triggers
-  - [ ] Add image categories/tags
-  - [ ] Implement image search
-  - [ ] Add CDN (Cloud CDN)
-  - [ ] Add monitoring dashboard
-  - [ ] Implement backup strategy
+---
+
+## 🔄 Optional: Migrate to Cloud SQL Later
+
+If you want to learn Cloud SQL later, you can:
+
+1. Create Cloud SQL instance ($7-10/month)
+2. Update DATABASE_URL in backend
+3. Redeploy to Cloud Run with `--add-cloudsql-instances`
+
+But for portfolio/learning purposes, local DB is perfect!
 
 ---
 

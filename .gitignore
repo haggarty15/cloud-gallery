@@ -99,3 +99,8 @@ gcp-credentials.json
 tmp/
 temp/
 *.tmp
+# Local environment and secrets
+backend/.env
+firebase-admin-key.json
+cors.json
+lifecycle.json
