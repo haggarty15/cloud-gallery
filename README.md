@@ -1,12 +1,15 @@
 # Cloud Gallery Portfolio
 
-A full-stack image gallery system deployed on Google Cloud Platform (GCP) featuring:
+A full-stack image gallery system demonstrating Google Cloud Platform (GCP) concepts and best practices:
 - **Android mobile app** for authenticated image uploads
 - **Backend API** for image validation and approval workflow
 - **Public web gallery** for displaying approved images
-- **GCP Infrastructure** using Cloud Run, Cloud Storage, Cloud SQL, and Identity Platform
+- **GCP Infrastructure** using Cloud Run, Cloud Storage, Firebase Identity Platform
+- **Cost-optimized** with local PostgreSQL for development (~$0-2/month vs $10-15/month)
 
 ## Architecture Overview
+
+### Current Architecture (Development - Cost Optimized)
 
 ```
 ┌─────────────────┐
@@ -18,14 +21,15 @@ A full-stack image gallery system deployed on Google Cloud Platform (GCP) featur
                   ┌──────────────┐
                   │  Backend API │
                   │  (Flask)     │
-                  │  Cloud Run   │
-                  └──────────────┘
+                  │  Cloud Run   │──── IAM Service Account
+                  └──────────────┘     (gallery-backend)
                          │
         ┌────────────────┼────────────────┐
         ▼                ▼                ▼
 ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│Cloud Storage │ │  Cloud SQL   │ │   Identity   │
-│  (Images)    │ │  (Metadata)  │ │   Platform   │
+│Cloud Storage │ │ PostgreSQL   │ │   Firebase   │
+│  (Images)    │ │   (Local)    │ │Identity Plat.│
+│ us-central1  │ │  localhost   │ │    (Auth)    │
 └──────────────┘ └──────────────┘ └──────────────┘
                          │
                          ▼
@@ -35,6 +39,76 @@ A full-stack image gallery system deployed on Google Cloud Platform (GCP) featur
                   │  Cloud Run   │
                   └──────────────┘
 ```
+
+**Key Design Decisions:**
+- ✅ **Local PostgreSQL** instead of Cloud SQL (saves $7-10/month)
+- ✅ **Cloud Run** with auto-scaling to zero (free when idle)
+- ✅ **Cloud Storage** with lifecycle policies (pennies per month)
+- ✅ **IAM Service Accounts** for secure, least-privilege access
+- ✅ **Firebase Authentication** (free tier for authentication)
+
+### Production Architecture (Optional - Add Cloud SQL Later)
+
+When ready to deploy to production, you can migrate to Cloud SQL:
+
+```
+Backend API → Cloud SQL (PostgreSQL) instead of localhost
+             └─ Connected via Cloud SQL Proxy
+             └─ Private IP for security
+             └─ Cost: ~$7-10/month for db-f1-micro
+```
+
+## Use Cases
+
+### 📚 Primary Use Case: Learning GCP Concepts
+
+This project is designed as a **portfolio/learning project** to demonstrate:
+
+1. **GCP Project Structure & IAM**
+   - Understanding projects as billing boundaries
+   - Service accounts and role-based access control
+   - Principle of least privilege
+
+2. **Cloud Storage Management**
+   - Bucket creation and configuration
+   - CORS policies for web uploads
+   - Lifecycle policies for cost optimization
+   - IAM policies at bucket and project level
+
+3. **Serverless Deployment (Cloud Run)**
+   - Container-based serverless architecture
+   - Auto-scaling including scale-to-zero
+   - Environment variable and secret management
+   - Service account assignment for runtime identity
+
+4. **Firebase Integration**
+   - Authentication across multiple platforms (Web, Android)
+   - Firebase Admin SDK for backend token verification
+   - Custom claims for role-based authorization
+
+5. **Cost Optimization**
+   - Choosing appropriate services for development vs production
+   - Using free tiers effectively
+   - Lifecycle policies and auto-cleanup
+   - Monitoring costs and setting budget alerts
+
+### 🎯 Secondary Use Case: Portfolio Project
+
+Perfect for demonstrating to potential employers:
+- Full-stack development skills (Kotlin, Python, React)
+- Cloud architecture knowledge (GCP services)
+- Security best practices (IAM, authentication, authorization)
+- DevOps capabilities (Docker, Infrastructure as Code)
+- Real-world workflow implementation (upload → approve → display)
+
+### 💼 Tertiary Use Case: Extendable Foundation
+
+Can be extended to:
+- Personal photography portfolio
+- Team image collaboration platform
+- Product photo approval system
+- Event photo gallery with moderation
+- Any workflow requiring: upload → review → publish
 
 ## Project Structure
 
@@ -92,17 +166,58 @@ cloud-gallery-portfolio/
 
 ## GCP Services Used
 
-1. **Cloud Run**: Containerized backend API and web hosting
-2. **Cloud Storage**: Image blob storage with signed URLs
-3. **Cloud SQL**: PostgreSQL for image metadata and approval status
-4. **Identity Platform**: Firebase Authentication
-5. **IAM**: Role-based access control
-6. **Cloud Build**: CI/CD for container builds
+### Currently Active (Cost-Optimized Setup)
+
+1. **Cloud Storage** 💰 ~$0.04/month
+   - Image blob storage in `us-central1`
+   - CORS configuration for web uploads
+   - Lifecycle policies (auto-delete old pending images)
+   - IAM policies for service account access
+
+2. **Identity Platform (Firebase)** 💰 FREE
+   - Firebase Authentication for web and mobile
+   - Email/Password and Google Sign-In providers
+   - Custom claims for admin role management
+   - Firebase Admin SDK for backend token verification
+
+3. **IAM & Service Accounts** 💰 FREE
+   - Service account: `gallery-backend`
+   - Role-based access control (RBAC)
+   - Least privilege principle
+   - Project-level and resource-level permissions
+
+4. **Cloud Run** 💰 FREE (free tier + scale-to-zero)
+   - Serverless container platform for backend API
+   - Serverless container platform for web frontend
+   - Auto-scaling from 0 to N instances
+   - Pay only for actual usage (requests)
+
+5. **Cloud Build** 💰 FREE (120 build-minutes/day)
+   - Container image builds
+   - Push to Google Container Registry
+   - CI/CD pipeline support
+
+### Development Environment
+
+6. **PostgreSQL (Local)** 💰 FREE
+   - Running locally instead of Cloud SQL
+   - Saves $7-10/month while learning
+   - Can migrate to Cloud SQL later for production
+
+### Optional (Can Add Later)
+
+- **Cloud SQL**: Managed PostgreSQL (~$7-10/month for db-f1-micro)
+- **Secret Manager**: Secure credential storage (~$0.06/month)
+- **Cloud Monitoring**: Metrics and logging (free tier available)
+- **Cloud CDN**: Content delivery network for images
+- **VPC**: Private networking for enhanced security
+
+**Total Current Monthly Cost: ~$0-2** 🎉
 
 ## Getting Started
 
 ### Prerequisites
-- Google Cloud Platform account
+- Google Cloud Platform account with billing enabled
 - Android Studio (for mobile app)
 - Node.js 18+ (for web app)
 - Python 3.11+ (for backend)
@@ -143,30 +258,97 @@ cd android
 
 ## Development Workflow
 
-1. User authenticates via Android app
-2. User selects/captures image
-3. Image uploaded to backend API
-4. Backend validates and stores image (pending approval)
-5. Admin reviews images via web dashboard
-6. Approved images appear in public gallery
-7. Public users view gallery without authentication
+### Current Workflow (When Fully Deployed)
+
+1. **User Authentication**
+   - User opens Android app
+   - Authenticates via Firebase (Email/Password or Google Sign-In)
+   - Firebase returns JWT token
+
+2. **Image Upload**
+   - User selects/captures image
+   - App sends image + metadata to backend API
+   - Backend verifies Firebase token
+   - Backend validates image (format, size, dimensions)
+
+3. **Storage & Processing**
+   - Backend uploads image to Cloud Storage (`pending/` folder)
+   - Backend creates thumbnail
+   - Backend stores metadata in PostgreSQL (status: pending)
+
+4. **Admin Review**
+   - Admin logs into web dashboard
+   - Reviews pending images
+   - Approves or rejects
+
+5. **Public Display**
+   - Approved images moved to `approved/` folder
+   - Status updated in database
+   - Public gallery fetches only approved images
+   - No authentication required to view
+
+### Development Status
+
+**✅ Completed (Ready to Use):**
+- GCP project setup and billing
+- Cloud Storage bucket with policies
+- IAM service accounts and roles
+- Local PostgreSQL database
+- Backend configuration
+
+**🔄 In Progress (Next Steps):**
+- Firebase Authentication setup
+- Backend development and testing
+- Cloud Run deployment
+- Web frontend deployment
+- Android app configuration
+
+**📍 You Are Here:** Ready to set up Firebase Authentication
 
 ## Security & IAM
 
-- **Authentication**: Firebase Identity Platform
-- **Authorization**: Custom claims and role-based access
-- **Storage**: Private buckets with signed URLs
-- **API**: JWT token validation on all protected endpoints
-- **Network**: Cloud Run with IAM-based access control
+**Current Implementation:**
+
+- **IAM & Service Accounts** ✅
+  - Service account: `gallery-backend@image-gallery-481812.iam.gserviceaccount.com`
+  - Roles: `firebase.admin`, `storage.objectAdmin`
+  - Principle of least privilege
+
+- **Cloud Storage Security** ✅
+  - Private bucket (not publicly accessible)
+  - IAM policies for service account access
+  - CORS configured for authorized origins
+  - Lifecycle policies for automatic cleanup
+
+- **Authentication** (In Progress)
+  - Firebase Identity Platform
+  - Email/Password and Google Sign-In providers
+  - JWT token validation on backend endpoints
+  - Custom claims for admin role management
+
+- **Authorization** (To Be Implemented)
+  - Role-based access control (RBAC)
+  - Admin-only endpoints for approval workflow
+  - User-only access to own uploaded images
+
+- **Data Security**
+  - Local PostgreSQL for development (isolated)
+  - Environment variables for configuration (not committed)
+  - Service account keys protected in .gitignore
+
+- **Network Security** (To Be Configured)
+  - Cloud Run with IAM-based access control
+  - HTTPS by default
+  - Signed URLs for temporary image access
 
 ## Testing
 
 ```bash
-# Backend tests
+# Backend tests (once dependencies installed)
 cd backend
 python -m pytest
 
-# Web tests
+# Web tests (once dependencies installed)
 cd web
 npm test
 
