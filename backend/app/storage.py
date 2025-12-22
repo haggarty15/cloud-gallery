@@ -3,17 +3,60 @@ Google Cloud Storage operations
 """
 import os
 from google.cloud import storage
+from google.oauth2 import service_account
 from datetime import timedelta
 from PIL import Image
 import io
 
-# Initialize storage client
-storage_client = storage.Client(project=os.getenv('PROJECT_ID'))
-bucket_name = os.getenv('BUCKET_NAME')
+# Storage client and bucket will be initialized lazily
+_storage_client = None
+_bucket = None
+
+def get_storage_client():
+    """Get or create storage client with service account credentials"""
+    global _storage_client
+    
+    if _storage_client is None:
+        credentials_path = os.getenv('FIREBASE_CREDENTIALS')
+        
+        # Convert relative path to absolute if needed
+        if credentials_path and not os.path.isabs(credentials_path):
+            # Assume path is relative to backend directory
+            backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            credentials_path = os.path.join(backend_dir, credentials_path)
+        
+        if credentials_path and os.path.exists(credentials_path):
+            credentials = service_account.Credentials.from_service_account_file(
+                credentials_path,
+                scopes=['https://www.googleapis.com/auth/cloud-platform']
+            )
+            _storage_client = storage.Client(
+                project=os.getenv('PROJECT_ID'),
+                credentials=credentials
+            )
+        else:
+            raise ValueError(
+                f"Firebase credentials not found. "
+                f"FIREBASE_CREDENTIALS={os.getenv('FIREBASE_CREDENTIALS')}, "
+                f"Resolved path={credentials_path}, "
+                f"Exists={os.path.exists(credentials_path) if credentials_path else False}"
+            )
+    
+    return _storage_client
 
 def get_bucket():
     """Get storage bucket"""
-    return storage_client.bucket(bucket_name)
+    global _bucket
+    
+    if _bucket is None:
+        bucket_name = os.getenv('BUCKET_NAME')
+        if not bucket_name:
+            raise ValueError("BUCKET_NAME environment variable not set")
+        
+        client = get_storage_client()
+        _bucket = client.bucket(bucket_name)
+    
+    return _bucket
 
 def upload_image(file, destination_path):
     """

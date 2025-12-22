@@ -46,9 +46,17 @@ if os.getenv('DB_CONNECTION_NAME'):
         'creator': getconn
     }
 else:
-    # Local PostgreSQL connection
-    db_uri = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@localhost/{os.getenv('DB_NAME')}"
-    app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
+    # Local PostgreSQL connection - use DATABASE_URL if available
+    db_uri = os.getenv('DATABASE_URL')
+    if db_uri:
+        # pg8000 requires postgresql+pg8000:// URI scheme
+        if db_uri.startswith('postgresql://'):
+            db_uri = db_uri.replace('postgresql://', 'postgresql+pg8000://', 1)
+        app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
+    else:
+        # Fallback to individual env vars
+        db_uri = f"postgresql+pg8000://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@localhost/{os.getenv('DB_NAME')}"
+        app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB max file size

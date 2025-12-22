@@ -88,6 +88,11 @@ terraform.tfvars
 service-account-key.json
 gcp-credentials.json
 
+# Firebase
+google-services.json
+firebase-admin-key.json
+firebase-adminsdk-*.json
+
 # IDE
 .vscode/
 .DS_Store
