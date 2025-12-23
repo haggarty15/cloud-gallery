@@ -67,9 +67,14 @@ db = SQLAlchemy(app)
 # Import routes after app initialization to avoid circular imports
 from app import routes, auth, storage, models
 
-# Initialize database tables
-with app.app_context():
-    db.create_all()
+# Initialize database tables - with error handling for missing database
+try:
+    with app.app_context():
+        db.create_all()
+        print("Database tables created successfully")
+except Exception as e:
+    print(f"Warning: Could not initialize database: {e}")
+    print("Database operations will fail until a database is configured")
 
 # Health check endpoint
 @app.route('/health', methods=['GET'])
