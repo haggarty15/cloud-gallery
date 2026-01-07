@@ -65,7 +65,7 @@ app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB max file size
 db = SQLAlchemy(app)
 
 # Import routes after app initialization to avoid circular imports
-from app import routes, auth, storage, models
+from app import routes, auth, storage, models, coloring_routes
 
 # Initialize database tables - with error handling for missing database
 try:

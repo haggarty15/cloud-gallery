@@ -63,7 +63,7 @@ def upload_image(file, destination_path):
     Upload image to Cloud Storage
     
     Args:
-        file: File object to upload
+        file: File object to upload (FileStorage or file-like object)
         destination_path: Destination path in bucket
         
     Returns:
@@ -75,7 +75,11 @@ def upload_image(file, destination_path):
         
         # Upload file
         file.seek(0)
-        blob.upload_from_file(file, content_type=file.content_type)
+        
+        # Check if it's a FileStorage object (has content_type)
+        content_type = getattr(file, 'content_type', 'image/jpeg')
+        
+        blob.upload_from_file(file, content_type=content_type)
         
         return destination_path
     except Exception as e:

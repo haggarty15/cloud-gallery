@@ -49,6 +49,19 @@
             android:exported="false"
             android:theme="@style/Theme.CloudGallery" />
 
+        <!-- Coloring Activity -->
+        <activity
+            android:name=".ui.coloring.ColoringActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.CloudGallery" />
+
+        <!-- Gallery Activity -->
+        <activity
+            android:name=".ui.gallery.GalleryActivity"
+            android:exported="false"
+            android:theme="@style/Theme.CloudGallery" />
+
         <!-- File Provider for camera capture -->
         <provider
             android:name="androidx.core.content.FileProvider"

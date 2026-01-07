@@ -353,6 +353,12 @@ class InteractiveCanvasGenerator:
         preview.save(output_path)
         print(f"Saved preview to {output_path}")
     
+    def save_template_preview(self, output_path):
+        """
+        Save empty template preview with numbered regions (alias for save_preview).
+        """
+        self.save_preview(output_path)
+    
     def save_colored_preview(self, output_path):
         """
         Save preview with colors filled in (what final result should look like).

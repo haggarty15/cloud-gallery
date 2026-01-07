@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/colorCard"
+    android:layout_width="70dp"
+    android:layout_height="wrap_content"
+    android:layout_margin="4dp"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="2dp"
+    app:strokeWidth="2dp"
+    app:strokeColor="@android:color/transparent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="8dp"
+        android:gravity="center">
+
+        <!-- Circular Color View -->
+        <View
+            android:id="@+id/colorCircle"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="@drawable/color_circle_background"
+            tools:backgroundTint="#FF5722" />
+
+        <!-- Color Number -->
+        <TextView
+            android:id="@+id/colorNumber"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            tools:text="1" />
+
+        <!-- Hex Code (Optional) -->
+        <TextView
+            android:id="@+id/colorHex"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textSize="10sp"
+            android:textColor="#666666"
+            android:visibility="gone"
+            tools:text="#FF5722" />
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>
