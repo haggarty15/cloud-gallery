@@ -3,6 +3,9 @@
     <string name="app_name">Cloud Gallery</string>
     <string name="api_base_url">https://gallery-backend-xxx.run.app</string>
     
+    <!-- Firebase/Google Sign-In -->
+    <string name="default_web_client_id">564492032682-asdbpb4uaer1r8m6q6sdm1ck1n00dh7s.apps.googleusercontent.com</string>
+
     <!-- Login Screen -->
     <string name="login_title">Welcome to Cloud Gallery</string>
     <string name="email_hint">Email</string>

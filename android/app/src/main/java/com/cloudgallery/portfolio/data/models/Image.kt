@@ -49,13 +49,6 @@ data class ImageListResponse(
     val pagination: Pagination
 )
 
-data class Pagination(
-    val page: Int,
-    val limit: Int,
-    val total: Int,
-    val pages: Int
-)
-
 data class ErrorResponse(
     val error: String,
     val code: String?,

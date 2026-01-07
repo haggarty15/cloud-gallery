@@ -34,12 +34,12 @@ class ProjectsAdapter(
 
         fun bind(project: ColoringProject) {
             binding.apply {
-                tvTitle.text = project.title ?: "Untitled"
-                tvDifficulty.text = "${project.difficulty.capitalize()} • ${project.numColors} colors"
-                tvStatus.text = project.status.capitalize()
+                projectTitle.text = project.title ?: "Untitled"
+                difficultyText.text = "${project.difficulty.capitalize()} • ${project.numColors} colors"
+                statusChip.text = project.status.capitalize()
 
                 // Load thumbnail
-                ivThumbnail.load(project.originalImageUrl) {
+                thumbnailImage.load(project.originalImageUrl) {
                     crossfade(true)
                     placeholder(R.drawable.placeholder_image)
                     error(R.drawable.error_image)
@@ -49,7 +49,7 @@ class ProjectsAdapter(
                     onProjectClick(project)
                 }
 
-                btnDelete.setOnClickListener {
+                deleteButton.setOnClickListener {
                     onDeleteClick(project)
                 }
             }

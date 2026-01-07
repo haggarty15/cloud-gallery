@@ -104,6 +104,17 @@ data class ColoringSession(
 )
 
 /**
+ * Pagination info
+ */
+data class Pagination(
+    val page: Int,
+    val limit: Int,
+    val total: Int,
+    @SerializedName("total_pages")
+    val totalPages: Int
+)
+
+/**
  * Request/Response models
  */
 data class CreateProjectRequest(

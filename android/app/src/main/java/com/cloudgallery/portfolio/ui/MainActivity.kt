@@ -2,11 +2,10 @@ package com.cloudgallery.portfolio.ui
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.cloudgallery.portfolio.databinding.ActivityMainBinding
-import com.cloudgallery.portfolio.viewmodel.MainViewModel
+import com.cloudgallery.portfolio.ui.gallery.GalleryActivity
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -38,12 +37,12 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun setupUI() {
-        binding.btnUpload.setOnClickListener {
+        binding.cardUpload.setOnClickListener {
             startActivity(Intent(this, UploadActivity::class.java))
         }
         
-        binding.btnMyUploads.setOnClickListener {
-            startActivity(Intent(this, UploadsListActivity::class.java))
+        binding.cardGallery.setOnClickListener {
+            startActivity(Intent(this, GalleryActivity::class.java))
         }
         
         binding.btnLogout.setOnClickListener {
