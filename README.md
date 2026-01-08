@@ -57,6 +57,7 @@ cloud-gallery/
 ## Documentation
 
 - **[Setup Guide](docs/SETUP_GUIDE.md)** - Complete setup instructions
+- **[Makefile Guide](docs/MAKEFILE_GUIDE.md)** - Make commands reference
 - **[Android Guide](docs/android/ANDROID_GUIDE.md)** - Android app development
 - **[Firebase Auth](docs/android/FIREBASE_AUTH.md)** - Authentication setup
 
