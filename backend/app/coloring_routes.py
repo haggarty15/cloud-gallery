@@ -30,17 +30,24 @@ def process_image_async(project_id, image_path, num_colors, output_dir):
         if not project:
             return
         
-        # Step 1: Apply cartoon preprocessing to simplify image
-        from app.stylized_processor import ImageStylizer
+        # Step 1: Apply neural cartoon preprocessing to simplify image
+        from app.neural_cartoon_processor import NeuralCartoonProcessor
         import tempfile
 
-        print(f"🎨 Preprocessing image with cartoon filter for better segmentation...")
-        stylizer = ImageStylizer(image_path)
-        stylizer.cartoon_filter()
+        print(f"🎨 Preprocessing image with Gemini AI for better segmentation...")
+        
+        # Use Gemini 2.5 Flash (free tier)
+        neural_processor = NeuralCartoonProcessor(
+            image_path=image_path,
+            model_name='gemini-2.5-flash'
+        )
+        
+        # Process with neural network (with fallback to simple filter if fails)
+        neural_processor.process(use_neural=True)
 
         # Save preprocessed image to temp file
         temp_stylized_path = os.path.join(output_dir, f"{project_id}_preprocessed.png")
-        stylizer.save_stylized(temp_stylized_path)
+        neural_processor.save(temp_stylized_path)
 
         # Step 2: Run canvas processor on preprocessed image
         generator = InteractiveCanvasGenerator(

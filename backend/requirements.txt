@@ -18,3 +18,6 @@ scikit-learn>=1.5.0
 scipy>=1.13.0
 numpy>=2.0.0
 
+# Google Gemini API for image transformation (new API)
+google-genai>=0.2.0
+
