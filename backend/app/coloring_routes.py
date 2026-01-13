@@ -30,12 +30,24 @@ def process_image_async(project_id, image_path, num_colors, output_dir):
         if not project:
             return
         
-        # Run canvas processor
+        # Step 1: Apply cartoon preprocessing to simplify image
+        from app.stylized_processor import ImageStylizer
+        import tempfile
+
+        print(f"🎨 Preprocessing image with cartoon filter for better segmentation...")
+        stylizer = ImageStylizer(image_path)
+        stylizer.cartoon_filter()
+
+        # Save preprocessed image to temp file
+        temp_stylized_path = os.path.join(output_dir, f"{project_id}_preprocessed.png")
+        stylizer.save_stylized(temp_stylized_path)
+
+        # Step 2: Run canvas processor on preprocessed image
         generator = InteractiveCanvasGenerator(
-            image_path=image_path,
+            image_path=temp_stylized_path,  # Use preprocessed image
             num_colors=num_colors,
             max_size=int(os.getenv('MAX_CANVAS_SIZE', 800)),
-            min_region_size=int(os.getenv('MIN_REGION_SIZE', 50))
+            min_region_size=int(os.getenv('MIN_REGION_SIZE', 200))  # Increased default to 200
         )
         
         # Process the image
@@ -63,6 +75,10 @@ def process_image_async(project_id, image_path, num_colors, output_dir):
         with open(template_path, 'rb') as f:
             upload_image(f, template_cloud_path)
         
+        # Clean up temp preprocessed file
+        if os.path.exists(temp_stylized_path):
+            os.remove(temp_stylized_path)
+
         # Update project with canvas data
         project.template_data = canvas_data
         project.template_image_url = template_cloud_path
@@ -104,13 +120,13 @@ def create_coloring_project():
         
         # Get parameters
         title = request.form.get('title', 'Untitled')
-        num_colors = int(request.form.get('num_colors', 20))
+        num_colors = int(request.form.get('num_colors', 15))  # Reduced to 15 for better UX
         difficulty = request.form.get('difficulty', 'medium')
         
         # Validate num_colors
-        if num_colors < 10 or num_colors > 50:
-            return jsonify({'error': 'num_colors must be between 10 and 50'}), 400
-        
+        if num_colors < 8 or num_colors > 50:
+            return jsonify({'error': 'num_colors must be between 8 and 50'}), 400
+
         # Generate unique filename
         file_ext = secure_filename(file.filename).rsplit('.', 1)[1].lower()
         project_id = f"proj_{uuid.uuid4().hex[:12]}"

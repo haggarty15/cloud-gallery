@@ -40,15 +40,16 @@ class InteractiveCanvasGenerator:
     }
     """
     
-    def __init__(self, image_path, num_colors=20, max_size=800, min_region_size=50):
+    def __init__(self, image_path, num_colors=15, max_size=800, min_region_size=200):
         """
         Initialize canvas generator
         
         Args:
             image_path: Path to input image
-            num_colors: Number of colors (10=easy, 25=medium, 50=hard)
+            num_colors: Number of colors (8=easy, 15=medium, 25=hard)
             max_size: Maximum dimension for canvas (pixels)
             min_region_size: Minimum pixels per region (smaller regions get merged)
+                            Default 200 for better UX (easier to tap on mobile)
         """
         self.image_path = image_path
         self.num_colors = num_colors
@@ -117,7 +118,9 @@ class InteractiveCanvasGenerator:
         # First, apply morphological operations to merge small regions
         if self.min_region_size > 0:
             self.color_labels = self._simplify_labels()
-        
+            # SECOND PASS: Eliminate tiny regions by reassigning to dominant neighbor
+            self.color_labels = self._merge_tiny_regions()
+
         regions = []
         region_id = 0
         
@@ -142,7 +145,11 @@ class InteractiveCanvasGenerator:
                 region_size = np.sum(region_mask)
                 if region_size == 0:
                     continue
-                
+
+                # SKIP tiny regions that slipped through
+                if region_size < self.min_region_size:
+                    continue
+
                 # Extract boundary coordinates
                 boundary = self._extract_boundary(region_mask)
                 
@@ -169,7 +176,7 @@ class InteractiveCanvasGenerator:
         # VERIFY: Check for any unassigned pixels
         unassigned_count = np.sum(~assigned)
         if unassigned_count > 0:
-            print(f"⚠️  Warning: {unassigned_count} pixels not assigned to regions!")
+            print(f"⚠️  Warning: {unassigned_count} pixels not assigned to regions (tiny regions filtered out)")
         else:
             print(f"✓ Complete coverage: All {height * width} pixels assigned")
         
@@ -180,34 +187,81 @@ class InteractiveCanvasGenerator:
         """
         Apply morphological operations to merge small regions.
         Uses closing (dilation + erosion) to fill small holes and gaps.
+        ENHANCED: More aggressive merging for larger, tap-friendly regions.
         """
         print(f"🔄 Simplifying regions (min size: {self.min_region_size} pixels)...")
         
         # Calculate kernel size based on min_region_size
-        # Larger min_size = larger kernel = more aggressive merging
-        kernel_size = max(3, int(np.sqrt(self.min_region_size) / 2))
+        # More aggressive sizing for better merging
+        kernel_size = max(5, int(np.sqrt(self.min_region_size)))
         kernel = np.ones((kernel_size, kernel_size), np.uint8)
         
+        # First pass: Apply median blur to reduce noise
+        # This helps merge very similar colors before morphological operations
+        blurred = cv2.medianBlur(self.color_labels.astype(np.uint8), 5)
+
         # Apply morphological closing for each color separately
-        simplified_labels = self.color_labels.copy()
-        
+        simplified_labels = blurred.copy()
+
         for color_num in range(self.num_colors):
             # Create binary mask for this color
-            mask = (self.color_labels == color_num).astype(np.uint8)
-            
-            # Morphological closing: fills small holes
-            closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-            
-            # Morphological opening: removes small regions
-            opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel)
-            
+            mask = (blurred == color_num).astype(np.uint8)
+
+            # Morphological closing: fills small holes (more iterations)
+            closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+
+            # Morphological opening: removes small regions (more iterations)
+            opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel, iterations=2)
+
             # Update labels where opening succeeded
             simplified_labels[opened == 1] = color_num
         
-        print(f"   ✓ Applied morphological simplification (kernel: {kernel_size}x{kernel_size})")
-        
+        print(f"   ✓ Applied aggressive morphological simplification (kernel: {kernel_size}x{kernel_size}, 2 iterations)")
+
         return simplified_labels
     
+    def _merge_tiny_regions(self):
+        """
+        Post-processing: Merge tiny color regions into neighboring larger regions.
+        Finds connected components for each color and reassigns tiny ones to dominant neighbor.
+        """
+        print(f"🔄 Merging tiny regions (min size: {self.min_region_size} pixels)...")
+
+        merged_labels = self.color_labels.copy()
+        total_merged = 0
+
+        # For each color, find and merge tiny regions
+        for color_num in range(self.num_colors):
+            color_mask = (self.color_labels == color_num).astype(np.uint8)
+
+            # Find connected components
+            labeled_mask, num_features = ndimage.label(color_mask)
+
+            # Check each region
+            for region_label in range(1, num_features + 1):
+                region_mask = (labeled_mask == region_label)
+                region_size = np.sum(region_mask)
+
+                # If region is too small, reassign to dominant neighbor
+                if region_size < self.min_region_size:
+                    # Dilate to find neighbors
+                    dilated = cv2.dilate(region_mask.astype(np.uint8), np.ones((3, 3), np.uint8))
+                    neighbor_mask = (dilated > 0) & (~region_mask)
+
+                    # Get neighbor colors
+                    neighbor_colors = merged_labels[neighbor_mask]
+
+                    if len(neighbor_colors) > 0:
+                        # Flatten and get most common neighbor color
+                        neighbor_colors_flat = neighbor_colors.flatten()
+                        dominant_color = np.bincount(neighbor_colors_flat).argmax()
+                        merged_labels[region_mask] = dominant_color
+                        total_merged += region_size
+
+        print(f"   ✓ Merged {total_merged} pixels from tiny regions into neighbors")
+
+        return merged_labels
+
     def _extract_boundary(self, region_mask):
         """
         Extract boundary coordinates of a region as polygon points.

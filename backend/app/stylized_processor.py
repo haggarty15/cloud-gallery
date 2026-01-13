@@ -12,7 +12,6 @@ import cv2
 import numpy as np
 from pathlib import Path
 import sys
-from canvas_processor import InteractiveCanvasGenerator
 
 
 class ImageStylizer:
@@ -41,34 +40,63 @@ class ImageStylizer:
         """
         Apply cartoon effect using edge detection + bilateral filtering.
         Creates bold, defined regions perfect for paint-by-numbers.
-        
+        ENHANCED: Aggressive smoothing to create larger, blockier regions.
+        OPTIMIZED: Fast processing while maintaining quality.
+
         Args:
             blur_value: Bilateral filter strength (higher = smoother)
             edge_threshold1: Lower edge detection threshold
             edge_threshold2: Upper edge detection threshold
         """
-        print("Applying cartoon filter...")
-        
+        print("Applying enhanced cartoon filter...")
+
         # Convert to RGB for processing
         img = self.original.copy()
         
-        # 1. Apply bilateral filter to reduce noise while keeping edges sharp
-        # Bilateral filter smooths while preserving edges
-        color = cv2.bilateralFilter(img, d=9, sigmaColor=250, sigmaSpace=250)
-        
-        # 2. Detect edges using Canny
-        gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-        gray = cv2.medianBlur(gray, 7)
-        edges = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, 
+        # 1. Resize for faster processing if too large
+        height, width = img.shape[:2]
+        process_img = img
+        scale_factor = 1.0
+
+        if max(height, width) > 1200:
+            scale_factor = 1200 / max(height, width)
+            new_width = int(width * scale_factor)
+            new_height = int(height * scale_factor)
+            process_img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+            print(f"   Resized for processing: {width}x{height} -> {new_width}x{new_height}")
+
+        # 2. Apply bilateral filtering (2 passes for good balance of speed/quality)
+        # This creates the blocky, cartoon effect by merging similar colors
+        color = process_img.copy()
+        for i in range(2):
+            color = cv2.bilateralFilter(color, d=9, sigmaColor=75, sigmaSpace=75)
+            print(f"   Bilateral filter pass {i+1}/2")
+
+        # 3. Posterize to reduce color variation within regions
+        # This ensures uniform color blocks
+        step = 256 // 6  # Reduce to 6 levels per channel (faster than 8)
+        color = (color // step) * step
+
+        # 4. Apply median blur to smooth out small variations
+        color = cv2.medianBlur(color, 5)
+
+        # 5. Detect edges using adaptive threshold (for cartoon outlines)
+        gray = cv2.cvtColor(color, cv2.COLOR_RGB2GRAY)
+        gray = cv2.medianBlur(gray, 5)
+        edges = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
                                       cv2.THRESH_BINARY, blockSize=9, C=2)
         
-        # 3. Combine edges with color
-        # Convert edges to RGB
+        # 6. Combine edges with color
         edges_rgb = cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
-        
-        # Combine
-        self.stylized = cv2.bitwise_and(color, edges_rgb)
-        
+        cartoon = cv2.bitwise_and(color, edges_rgb)
+
+        # 7. Resize back to original size if we scaled down
+        if scale_factor < 1.0:
+            cartoon = cv2.resize(cartoon, (width, height), interpolation=cv2.INTER_LINEAR)
+            print(f"   Resized back to original: {width}x{height}")
+
+        self.stylized = cartoon
+
         return self.stylized
     
     def posterize_filter(self, levels=6):
@@ -261,6 +289,9 @@ class StylizedCanvasGenerator:
         print("STEP 2: Canvas Generation")
         print("-" * 60)
         
+        # Local import to avoid circular dependency
+        from app.canvas_processor import InteractiveCanvasGenerator
+
         generator = InteractiveCanvasGenerator(
             str(self.stylized_path), 
             num_colors=self.num_colors,
